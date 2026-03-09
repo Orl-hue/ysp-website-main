@@ -194,9 +194,6 @@ export const VolunteerPage = () => {
       <header className="panel-surface p-5 sm:p-7 lg:p-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="eyebrow">Volunteer Opportunities</span>
-          <span className="rounded-full border border-slate-200 bg-white/85 px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-600">
-            Inspired by iVolunteer format
-          </span>
         </div>
 
         <h1 className="section-title mt-3">Find Events You Can Join</h1>
