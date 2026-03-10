@@ -18,5 +18,15 @@ export const formatSupabaseErrorMessage = (message: string): string => {
     return 'Supabase is missing volunteer_limit on public.volunteer_opportunities. Run supabase/fix-volunteer-opportunities.sql in Supabase SQL Editor, then refresh the app.';
   }
 
+  if (
+    normalized.includes('chapter_head_contact') &&
+    normalized.includes('chapters') &&
+    (normalized.includes('schema cache') ||
+      normalized.includes('does not exist') ||
+      normalized.includes('column'))
+  ) {
+    return 'Supabase is missing chapter_head_contact on public.chapters. Run supabase/add-chapter-head-contact.sql in Supabase SQL Editor, then refresh the app.';
+  }
+
   return message;
 };

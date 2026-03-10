@@ -113,6 +113,13 @@ If your project was already set up before this change, run:
 1. `supabase/add-volunteer-event-time.sql`
 2. Hard refresh browser and restart `npm run dev`
 
+### Chapters Contact Column (Older Projects)
+
+If admin Chapters page shows a missing `chapter_head_contact` column error, run:
+
+1. `supabase/add-chapter-head-contact.sql`
+2. Hard refresh browser and restart `npm run dev`
+
 ### Seeded Defaults
 
 - `site_stats`: `projects_count=0`, `chapters_count=0`, `members_count=0`

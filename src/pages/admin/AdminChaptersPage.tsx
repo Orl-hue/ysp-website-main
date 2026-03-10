@@ -2,6 +2,7 @@
 import { EmptyState } from '../../components/ui/EmptyState';
 import { ErrorState } from '../../components/ui/ErrorState';
 import { LoadingState } from '../../components/ui/LoadingState';
+import { formatSupabaseErrorMessage } from '../../lib/supabaseErrors';
 import { supabase } from '../../lib/supabaseClient';
 import type { TableRow } from '../../types/database';
 
@@ -43,7 +44,7 @@ export const AdminChaptersPage = () => {
       .order('created_at', { ascending: false });
 
     if (queryError) {
-      setError(queryError.message);
+      setError(formatSupabaseErrorMessage(queryError.message));
     }
 
     setChapters((data as TableRow<'chapters'>[] | null) ?? []);
@@ -92,7 +93,7 @@ export const AdminChaptersPage = () => {
         .eq('id', editingId);
 
       if (updateError) {
-        setError(updateError.message);
+        setError(formatSupabaseErrorMessage(updateError.message));
         setSaving(false);
         return;
       }
@@ -102,7 +103,7 @@ export const AdminChaptersPage = () => {
       const { error: insertError } = await supabase.from('chapters').insert(payload);
 
       if (insertError) {
-        setError(insertError.message);
+        setError(formatSupabaseErrorMessage(insertError.message));
         setSaving(false);
         return;
       }
@@ -144,7 +145,7 @@ export const AdminChaptersPage = () => {
     const { error: deleteError } = await supabase.from('chapters').delete().eq('id', chapter.id);
 
     if (deleteError) {
-      setError(deleteError.message);
+      setError(formatSupabaseErrorMessage(deleteError.message));
       return;
     }
 
