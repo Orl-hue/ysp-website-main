@@ -7,6 +7,13 @@ import { supabase } from '../lib/supabaseClient';
 import type { TableRow } from '../types/database';
 import { slugify } from '../utils/slugify';
 
+const formatDisplayTitle = (value: string): string => {
+  return value
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 export const ProgramDetailPage = () => {
   const { slug: pathKey } = useParams();
   const [loading, setLoading] = useState(true);
@@ -54,9 +61,11 @@ export const ProgramDetailPage = () => {
     void load();
   }, [pathKey]);
 
+  const displayTitle = program ? formatDisplayTitle(program.title) : '';
+
   return (
-    <div className="content-container space-y-5">
-      <Link to="/programs" className="btn-ghost">
+    <div className="content-container motion-enter flex flex-col gap-6 sm:gap-7">
+      <Link to="/programs" className="btn-ghost self-start">
         Back to programs
       </Link>
 
@@ -77,13 +86,15 @@ export const ProgramDetailPage = () => {
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-slate-900/10 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+            <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-7 lg:p-8">
               <span className="eyebrow">Program Spotlight</span>
-              <h1 className="mt-3 text-4xl font-extrabold text-white sm:text-5xl">{program.title}</h1>
+              <h1 className="mt-3 text-4xl font-extrabold leading-tight text-white sm:text-5xl">
+                {displayTitle}
+              </h1>
             </div>
           </div>
 
-          <div className="space-y-4 p-6 sm:p-9">
+          <div className="p-6 sm:p-8 lg:p-10">
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 sm:text-base">
               {program.description}
             </p>
