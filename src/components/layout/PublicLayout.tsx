@@ -153,8 +153,8 @@ export const PublicLayout = () => {
                     <span
                       className={`relative flex items-center rounded-xl px-2.5 py-2 text-sm font-medium transition-colors duration-300 lg:px-3 ${
                         isActive
-                          ? 'bg-orange-100 text-[#f6421f]'
-                          : 'text-slate-500 hover:bg-white/70 hover:text-slate-900'
+                          ? 'bg-white text-[#f6421f]'
+                          : 'text-slate-500 hover:bg-orange-50 hover:text-[#f6421f]'
                       }`}
                     >
                       {link.icon(isActive)}
@@ -210,8 +210,8 @@ export const PublicLayout = () => {
                 className={({ isActive }) =>
                   `inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition ${
                     isActive
-                      ? 'bg-orange-100 text-[#f6421f]'
-                      : 'text-slate-600 hover:bg-white/70 hover:text-slate-900'
+                      ? 'bg-white text-[#f6421f]'
+                      : 'text-slate-600 hover:bg-orange-50 hover:text-[#f6421f]'
                   }`
                 }
                 onClick={() => setMobileOpen(false)}
