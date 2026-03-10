@@ -11,6 +11,7 @@ import { formatDate } from '../../utils/format';
 interface OpportunityFormState {
   event_name: string;
   event_date: string;
+  event_time: string;
   chapter_id: string;
   sdgs_text: string;
   chapter_head_contact: string;
@@ -20,6 +21,7 @@ interface OpportunityFormState {
 const defaultForm: OpportunityFormState = {
   event_name: '',
   event_date: '',
+  event_time: '',
   chapter_id: '',
   sdgs_text: '',
   chapter_head_contact: '',
@@ -37,6 +39,17 @@ const isVolunteerLimitColumnMissing = (message: string): boolean => {
   const normalized = message.toLowerCase();
   return (
     normalized.includes('volunteer_limit') &&
+    (normalized.includes('column') ||
+      normalized.includes('schema cache') ||
+      normalized.includes('does not exist') ||
+      normalized.includes('not found'))
+  );
+};
+
+const isEventTimeColumnMissing = (message: string): boolean => {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('event_time') &&
     (normalized.includes('column') ||
       normalized.includes('schema cache') ||
       normalized.includes('does not exist') ||
@@ -148,6 +161,7 @@ export const AdminVolunteerOpportunitiesPage = () => {
 
     const eventName = form.event_name.trim();
     const eventDate = form.event_date;
+    const eventTime = form.event_time.trim();
     const chapterId = isAdmin ? form.chapter_id : chapterIdForHead;
     const chapterHeadContact = form.chapter_head_contact.trim();
     const sdgs = parseSdgs(form.sdgs_text);
@@ -179,6 +193,14 @@ export const AdminVolunteerOpportunitiesPage = () => {
     const basePayload = {
       event_name: eventName,
       event_date: eventDate,
+      event_time: eventTime || null,
+      chapter_id: chapterId,
+      sdgs,
+      chapter_head_contact: chapterHeadContact,
+    };
+    const basePayloadWithoutTime = {
+      event_name: eventName,
+      event_date: eventDate,
       chapter_id: chapterId,
       sdgs,
       chapter_head_contact: chapterHeadContact,
@@ -186,6 +208,10 @@ export const AdminVolunteerOpportunitiesPage = () => {
 
     const payloadWithLimit = {
       ...basePayload,
+      volunteer_limit: volunteerLimit,
+    };
+    const payloadWithLimitWithoutTime = {
+      ...basePayloadWithoutTime,
       volunteer_limit: volunteerLimit,
     };
 
@@ -196,10 +222,19 @@ export const AdminVolunteerOpportunitiesPage = () => {
         .eq('id', editingId);
 
       let skippedVolunteerLimit = false;
+      let skippedEventTime = false;
+      if (updateError && isEventTimeColumnMissing(updateError.message)) {
+        const { error: retryError } = await supabase
+          .from('volunteer_opportunities')
+          .update(payloadWithLimitWithoutTime)
+          .eq('id', editingId);
+        updateError = retryError;
+        skippedEventTime = !retryError;
+      }
       if (updateError && isVolunteerLimitColumnMissing(updateError.message)) {
         const { error: retryError } = await supabase
           .from('volunteer_opportunities')
-          .update(basePayload)
+          .update(basePayloadWithoutTime)
           .eq('id', editingId);
         updateError = retryError;
         skippedVolunteerLimit = !retryError;
@@ -211,21 +246,39 @@ export const AdminVolunteerOpportunitiesPage = () => {
         return;
       }
 
-      setSuccess(
-        skippedVolunteerLimit
-          ? 'Volunteer opportunity updated. Volunteer limit was skipped because Supabase schema is outdated.'
-          : 'Volunteer opportunity updated successfully.'
-      );
+      if (skippedVolunteerLimit && skippedEventTime) {
+        setSuccess(
+          'Volunteer opportunity updated. Volunteer limit and event time were skipped because Supabase schema is outdated.'
+        );
+      } else if (skippedVolunteerLimit) {
+        setSuccess(
+          'Volunteer opportunity updated. Volunteer limit was skipped because Supabase schema is outdated.'
+        );
+      } else if (skippedEventTime) {
+        setSuccess(
+          'Volunteer opportunity updated. Event time was skipped because Supabase schema is outdated.'
+        );
+      } else {
+        setSuccess('Volunteer opportunity updated successfully.');
+      }
     } else {
       let { error: insertError } = await supabase
         .from('volunteer_opportunities')
         .insert(payloadWithLimit);
 
       let skippedVolunteerLimit = false;
+      let skippedEventTime = false;
+      if (insertError && isEventTimeColumnMissing(insertError.message)) {
+        const { error: retryError } = await supabase
+          .from('volunteer_opportunities')
+          .insert(payloadWithLimitWithoutTime);
+        insertError = retryError;
+        skippedEventTime = !retryError;
+      }
       if (insertError && isVolunteerLimitColumnMissing(insertError.message)) {
         const { error: retryError } = await supabase
           .from('volunteer_opportunities')
-          .insert(basePayload);
+          .insert(basePayloadWithoutTime);
         insertError = retryError;
         skippedVolunteerLimit = !retryError;
       }
@@ -236,11 +289,21 @@ export const AdminVolunteerOpportunitiesPage = () => {
         return;
       }
 
-      setSuccess(
-        skippedVolunteerLimit
-          ? 'Volunteer opportunity created. Volunteer limit was skipped because Supabase schema is outdated.'
-          : 'Volunteer opportunity created successfully.'
-      );
+      if (skippedVolunteerLimit && skippedEventTime) {
+        setSuccess(
+          'Volunteer opportunity created. Volunteer limit and event time were skipped because Supabase schema is outdated.'
+        );
+      } else if (skippedVolunteerLimit) {
+        setSuccess(
+          'Volunteer opportunity created. Volunteer limit was skipped because Supabase schema is outdated.'
+        );
+      } else if (skippedEventTime) {
+        setSuccess(
+          'Volunteer opportunity created. Event time was skipped because Supabase schema is outdated.'
+        );
+      } else {
+        setSuccess('Volunteer opportunity created successfully.');
+      }
     }
 
     await loadData();
@@ -254,6 +317,7 @@ export const AdminVolunteerOpportunitiesPage = () => {
     setForm({
       event_name: opportunity.event_name,
       event_date: opportunity.event_date,
+      event_time: opportunity.event_time ?? '',
       chapter_id: opportunity.chapter_id,
       sdgs_text: opportunity.sdgs.join(', '),
       chapter_head_contact: opportunity.chapter_head_contact,
@@ -375,6 +439,19 @@ export const AdminVolunteerOpportunitiesPage = () => {
                 />
               </label>
 
+              <label className="text-sm font-semibold text-slate-700">
+                Event Time
+                <input
+                  type="text"
+                  value={form.event_time}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, event_time: event.target.value }))
+                  }
+                  placeholder="e.g. 8:00 AM"
+                  className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+                />
+              </label>
+
               {isAdmin ? (
                 <label className="text-sm font-semibold text-slate-700">
                   Chapter *
@@ -492,7 +569,8 @@ export const AdminVolunteerOpportunitiesPage = () => {
                     {opportunity.event_name}
                   </h2>
                   <p className="mt-1 text-sm text-slate-600">
-                    {formatDate(opportunity.event_date)} •{' '}
+                    {formatDate(opportunity.event_date)}
+                    {opportunity.event_time ? ` • ${opportunity.event_time}` : ''} •{' '}
                     {chapterMap.get(opportunity.chapter_id) ?? 'Unknown chapter'}
                   </p>
                   <p className="mt-2 text-sm text-slate-600">

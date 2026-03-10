@@ -104,6 +104,15 @@ If your project was already set up before this change:
 4. Sync form submissions into `public.volunteer_signups` (via Apps Script or Edge Function).
 5. Optional template for Apps Script is in `scripts/google-form-to-supabase.gs`.
 
+### Volunteer Opportunity Event Time
+
+Volunteer opportunities now support `event_time`.
+
+If your project was already set up before this change, run:
+
+1. `supabase/add-volunteer-event-time.sql`
+2. Hard refresh browser and restart `npm run dev`
+
 ### Seeded Defaults
 
 - `site_stats`: `projects_count=0`, `chapters_count=0`, `members_count=0`
@@ -147,6 +156,8 @@ values ('<AUTH_USER_UUID>', 'chapter_head', '<CHAPTER_UUID>');
 - `/admin` Dashboard
 - `/admin/programs` Programs CRUD (admin)
 - `/admin/chapters` Chapters CRUD (admin)
+- `/admin/users` User role + chapter assignment (admin)
 - `/admin/volunteer-opportunities` Volunteer opportunities CRUD (admin + chapter_head)
+- `/admin/volunteer-signups` Volunteer signup records (admin + chapter_head, chapter-scoped for chapter_head)
 - `/admin/contact` Contact details editor (admin)
 

@@ -435,11 +435,9 @@ export const VolunteerPage = () => {
                     day: '2-digit',
                     year: 'numeric',
                   });
-              const dynamicEventTime = (opportunity as unknown as { event_time?: unknown })
-                .event_time;
               const eventTimeLabel =
-                typeof dynamicEventTime === 'string' && dynamicEventTime.trim().length > 0
-                  ? dynamicEventTime.trim()
+                typeof opportunity.event_time === 'string' && opportunity.event_time.trim().length > 0
+                  ? opportunity.event_time.trim()
                   : 'Time to be announced';
 
               const dynamicFilled = (opportunity as unknown as { volunteer_filled?: unknown })

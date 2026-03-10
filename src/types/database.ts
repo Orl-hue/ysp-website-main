@@ -142,6 +142,7 @@ export type Database = {
           id: string;
           event_name: string;
           event_date: string;
+          event_time: string | null;
           chapter_id: string;
           sdgs: string[];
           chapter_head_contact: string;
@@ -152,6 +153,7 @@ export type Database = {
           id?: string;
           event_name: string;
           event_date: string;
+          event_time?: string | null;
           chapter_id: string;
           sdgs?: string[];
           chapter_head_contact: string;
@@ -162,6 +164,7 @@ export type Database = {
           id?: string;
           event_name?: string;
           event_date?: string;
+          event_time?: string | null;
           chapter_id?: string;
           sdgs?: string[];
           chapter_head_contact?: string;

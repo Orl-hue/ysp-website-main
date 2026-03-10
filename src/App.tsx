@@ -1,7 +1,8 @@
-﻿import { Navigate, Route, Routes } from 'react-router-dom';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import type { Location } from 'react-router-dom';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { LoadingState } from './components/ui/LoadingState';
+import { useAuth } from './contexts/AuthContext';
 import { AdminLayout } from './components/layout/AdminLayout';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { LoginPage } from './pages/LoginPage';
@@ -17,9 +18,12 @@ import { AdminProgramsPage } from './pages/admin/AdminProgramsPage';
 import { AdminChaptersPage } from './pages/admin/AdminChaptersPage';
 import { AdminVolunteerOpportunitiesPage } from './pages/admin/AdminVolunteerOpportunitiesPage';
 import { AdminContactPage } from './pages/admin/AdminContactPage';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminVolunteerSignupsPage } from './pages/admin/AdminVolunteerSignupsPage';
 
 const App = () => {
   const location = useLocation();
+  const { loading, profile } = useAuth();
   const state = location.state as { backgroundLocation?: Location } | null;
 
   return (
@@ -31,7 +35,7 @@ const App = () => {
           <Route path="/programs/:slug" element={<ProgramDetailPage />} />
           <Route path="/membership" element={<MembershipPage />} />
           <Route path="/volunteer" element={<VolunteerPage />} />
-        <Route path="/contact" element={<ContactPage />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/login" element={<LoginPage />} />
         </Route>
 
@@ -43,7 +47,18 @@ const App = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<AdminDashboardPage />} />
+          <Route
+            index
+            element={
+              loading ? (
+                <LoadingState label="Loading dashboard..." />
+              ) : profile?.role === 'chapter_head' ? (
+                <Navigate to="/admin/volunteer-opportunities" replace />
+              ) : (
+                <AdminDashboardPage />
+              )
+            }
+          />
           <Route
             path="programs"
             element={
@@ -60,7 +75,16 @@ const App = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="users"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminUsersPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="volunteer-opportunities" element={<AdminVolunteerOpportunitiesPage />} />
+          <Route path="volunteer-signups" element={<AdminVolunteerSignupsPage />} />
           <Route
             path="contact"
             element={
@@ -85,4 +109,3 @@ const App = () => {
 };
 
 export default App;
-

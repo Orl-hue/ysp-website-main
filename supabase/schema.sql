@@ -123,6 +123,7 @@ create table if not exists volunteer_opportunities (
   id uuid primary key default gen_random_uuid(),
   event_name text not null,
   event_date date not null,
+  event_time text,
   chapter_id uuid not null references chapters(id) on delete cascade,
   sdgs text[] not null default '{}',
   chapter_head_contact text not null,
@@ -147,6 +148,9 @@ create table if not exists volunteer_signups (
 
 alter table public.volunteer_opportunities
   add column if not exists volunteer_limit integer;
+
+alter table public.volunteer_opportunities
+  add column if not exists event_time text;
 
 do $$
 begin

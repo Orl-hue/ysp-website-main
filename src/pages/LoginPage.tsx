@@ -281,17 +281,6 @@ export const LoginPage = () => {
               </div>
             </div>
 
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => navigate('/contact')}
-                className="group flex items-center gap-1 text-xs font-semibold text-[rgb(238,135,36)] transition-all duration-300 hover:underline active:scale-95 sm:text-sm"
-              >
-                Forgot password?
-                <span className="inline-block transition-transform group-hover:translate-x-1"></span>
-              </button>
-            </div>
-
             <label className="flex items-center gap-2 text-xs text-gray-600 sm:text-sm">
               <input
                 type="checkbox"

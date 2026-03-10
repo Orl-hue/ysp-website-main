@@ -64,6 +64,35 @@ const adminLinks: AdminNavItem[] = [
     ),
   },
   {
+    to: '/admin/volunteer-signups',
+    label: 'Volunteer Signups',
+    shortLabel: 'Signups',
+    adminOnly: false,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4z" />
+        <path d="M6 12a3 3 0 1 0-3-3 3 3 0 0 0 3 3z" />
+        <path d="M16 13c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+        <path d="M6 14c-.29 0-.62 0-1 .05A4.48 4.48 0 0 0 2 18v1h4" />
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/users',
+    label: 'User Access',
+    shortLabel: 'Users',
+    adminOnly: true,
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="9" cy="8" r="4" />
+        <path d="M17 11v-1a4 4 0 0 0-4-4" />
+        <path d="M3 20a6 6 0 0 1 12 0" />
+        <line x1="19" y1="8" x2="19" y2="14" />
+        <line x1="16" y1="11" x2="22" y2="11" />
+      </svg>
+    ),
+  },
+  {
     to: '/admin/contact',
     label: 'Contact',
     shortLabel: 'Contact',

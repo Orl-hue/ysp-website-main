@@ -4,6 +4,7 @@ create table if not exists public.volunteer_opportunities (
   id uuid primary key default gen_random_uuid(),
   event_name text not null,
   event_date date not null,
+  event_time text,
   chapter_id uuid not null references public.chapters(id) on delete cascade,
   sdgs text[] not null default '{}',
   chapter_head_contact text not null,
@@ -15,6 +16,9 @@ create table if not exists public.volunteer_opportunities (
 
 alter table public.volunteer_opportunities
   add column if not exists volunteer_limit integer;
+
+alter table public.volunteer_opportunities
+  add column if not exists event_time text;
 
 do $$
 begin
@@ -43,6 +47,7 @@ begin
       id,
       event_name,
       event_date,
+      event_time,
       chapter_id,
       sdgs,
       chapter_head_contact,
@@ -52,6 +57,7 @@ begin
       o.id,
       o.event_name,
       o.date,
+      null,
       o.chapter_id,
       coalesce(o.sdgs_impacted, '{}'::text[]),
       coalesce(
@@ -66,6 +72,7 @@ begin
       set
         event_name = excluded.event_name,
         event_date = excluded.event_date,
+        event_time = excluded.event_time,
         chapter_id = excluded.chapter_id,
         sdgs = excluded.sdgs,
         chapter_head_contact = excluded.chapter_head_contact;
