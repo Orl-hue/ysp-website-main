@@ -178,6 +178,47 @@ export type Database = {
           },
         ];
       };
+      volunteer_signups: {
+        Row: {
+          id: string;
+          opportunity_id: string;
+          email: string;
+          full_name: string | null;
+          source: string;
+          external_response_id: string | null;
+          signed_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          opportunity_id: string;
+          email: string;
+          full_name?: string | null;
+          source?: string;
+          external_response_id?: string | null;
+          signed_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          opportunity_id?: string;
+          email?: string;
+          full_name?: string | null;
+          source?: string;
+          external_response_id?: string | null;
+          signed_at?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'volunteer_signups_opportunity_id_fkey';
+            columns: ['opportunity_id'];
+            isOneToOne: false;
+            referencedRelation: 'volunteer_opportunities';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

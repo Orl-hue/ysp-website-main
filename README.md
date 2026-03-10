@@ -27,6 +27,9 @@ cp .env.example .env
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_GOOGLE_FORM_OPPORTUNITY_ID_ENTRY` (optional, e.g. `entry.123456789`)
+- `VITE_GOOGLE_FORM_EVENT_NAME_ENTRY` (optional)
+- `VITE_GOOGLE_FORM_EMAIL_ENTRY` (optional)
 
 4. Start development server:
 
@@ -83,6 +86,23 @@ Your app is connected to a Supabase project that does not yet have the required 
 - `programs`
 - `chapters`
 - `volunteer_opportunities`
+- `volunteer_signups`
+
+### Volunteer Signup Sync (Google Form -> Supabase)
+
+To show signup count and "already signed up" on `/volunteer`, your Supabase project needs
+`public.volunteer_signups`.
+
+If your project was already set up before this change:
+
+1. Run `supabase/add-volunteer-signups.sql` in Supabase SQL Editor.
+2. In Google Form, add fields for opportunity id (and optional event name/email).
+3. Set matching `entry.<id>` keys in `.env`:
+   - `VITE_GOOGLE_FORM_OPPORTUNITY_ID_ENTRY`
+   - `VITE_GOOGLE_FORM_EVENT_NAME_ENTRY`
+   - `VITE_GOOGLE_FORM_EMAIL_ENTRY`
+4. Sync form submissions into `public.volunteer_signups` (via Apps Script or Edge Function).
+5. Optional template for Apps Script is in `scripts/google-form-to-supabase.gs`.
 
 ### Seeded Defaults
 

@@ -132,6 +132,19 @@ create table if not exists volunteer_opportunities (
   created_at timestamptz not null default now()
 );
 
+create table if not exists volunteer_signups (
+  id uuid primary key default gen_random_uuid(),
+  opportunity_id uuid not null references volunteer_opportunities(id) on delete cascade,
+  email text not null,
+  full_name text,
+  source text not null default 'google_form',
+  external_response_id text,
+  signed_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  constraint volunteer_signups_opportunity_email_key unique (opportunity_id, email),
+  constraint volunteer_signups_external_response_id_key unique (external_response_id)
+);
+
 alter table public.volunteer_opportunities
   add column if not exists volunteer_limit integer;
 
@@ -230,6 +243,7 @@ alter table contact_details enable row level security;
 alter table programs enable row level security;
 alter table chapters enable row level security;
 alter table volunteer_opportunities enable row level security;
+alter table volunteer_signups enable row level security;
 
 drop policy if exists profiles_select_self_or_admin on profiles;
 drop policy if exists profiles_admin_insert on profiles;
@@ -263,6 +277,11 @@ drop policy if exists volunteer_opportunities_admin_delete on volunteer_opportun
 drop policy if exists volunteer_opportunities_chapter_head_insert on volunteer_opportunities;
 drop policy if exists volunteer_opportunities_chapter_head_update on volunteer_opportunities;
 drop policy if exists volunteer_opportunities_chapter_head_delete on volunteer_opportunities;
+
+drop policy if exists volunteer_signups_public_select on volunteer_signups;
+drop policy if exists volunteer_signups_admin_insert on volunteer_signups;
+drop policy if exists volunteer_signups_admin_update on volunteer_signups;
+drop policy if exists volunteer_signups_admin_delete on volunteer_signups;
 
 create policy profiles_select_self_or_admin
   on profiles for select
@@ -418,12 +437,34 @@ create policy volunteer_opportunities_chapter_head_delete
     and chapter_id = current_user_chapter_id()
   );
 
+create policy volunteer_signups_public_select
+  on volunteer_signups for select
+  to anon, authenticated
+  using (true);
+
+create policy volunteer_signups_admin_insert
+  on volunteer_signups for insert
+  to authenticated
+  with check (is_admin());
+
+create policy volunteer_signups_admin_update
+  on volunteer_signups for update
+  to authenticated
+  using (is_admin())
+  with check (is_admin());
+
+create policy volunteer_signups_admin_delete
+  on volunteer_signups for delete
+  to authenticated
+  using (is_admin());
+
 grant usage on schema public to anon, authenticated, service_role;
 
 grant select on table
   public.programs,
   public.chapters,
   public.volunteer_opportunities,
+  public.volunteer_signups,
   public.site_stats,
   public.contact_details
 to anon, authenticated;
@@ -433,6 +474,7 @@ grant select, insert, update, delete on table
   public.programs,
   public.chapters,
   public.volunteer_opportunities,
+  public.volunteer_signups,
   public.site_stats,
   public.contact_details
 to authenticated;

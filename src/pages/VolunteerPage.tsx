@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { LoadingState } from '../components/ui/LoadingState';
@@ -9,14 +10,69 @@ import type { TableRow } from '../types/database';
 import eventCardImage from '../assets/ysp-image-optimized.jpg';
 
 type DateFilter = 'all' | 'upcoming' | 'this_month';
+type SignupRow = Pick<TableRow<'volunteer_signups'>, 'opportunity_id' | 'email'>;
+
 const memberFormUrl =
   'https://docs.google.com/forms/d/e/1FAIpQLSdwMKgIjQNrlLH-j-Qdx0MrKxefxaLRC6gMI_oOgMTosDi_sQ/viewform';
 
+const opportunityIdEntry = import.meta.env.VITE_GOOGLE_FORM_OPPORTUNITY_ID_ENTRY;
+const eventNameEntry = import.meta.env.VITE_GOOGLE_FORM_EVENT_NAME_ENTRY;
+const emailEntry = import.meta.env.VITE_GOOGLE_FORM_EMAIL_ENTRY;
+
+const normalizeEmail = (value: string | null | undefined): string => {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+};
+
+const sanitizeGoogleEntryKey = (value: string | undefined): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  return /^entry\.\d+$/.test(trimmed) ? trimmed : null;
+};
+
+const isVolunteerSignupTableMissing = (message: string): boolean => {
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('volunteer_signups') &&
+    (normalized.includes('not found') ||
+      normalized.includes('does not exist') ||
+      normalized.includes('could not find the table'))
+  );
+};
+
+const buildVolunteerSignupUrl = (
+  opportunityId: string,
+  eventName: string,
+  email: string | null | undefined
+): string => {
+  const opportunityEntryKey = sanitizeGoogleEntryKey(opportunityIdEntry);
+  const eventEntryKey = sanitizeGoogleEntryKey(eventNameEntry);
+  const emailEntryKey = sanitizeGoogleEntryKey(emailEntry);
+  const nextUrl = new URL(memberFormUrl);
+
+  if (opportunityEntryKey) {
+    nextUrl.searchParams.set(opportunityEntryKey, opportunityId);
+  }
+  if (eventEntryKey) {
+    nextUrl.searchParams.set(eventEntryKey, eventName);
+  }
+  if (emailEntryKey && normalizeEmail(email).length > 0) {
+    nextUrl.searchParams.set(emailEntryKey, normalizeEmail(email));
+  }
+
+  return nextUrl.toString();
+};
+
 export const VolunteerPage = () => {
+  const { session } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [opportunities, setOpportunities] = useState<TableRow<'volunteer_opportunities'>[]>([]);
   const [chapters, setChapters] = useState<TableRow<'chapters'>[]>([]);
+  const [signups, setSignups] = useState<SignupRow[]>([]);
+  const [isSignupSyncAvailable, setIsSignupSyncAvailable] = useState(true);
 
   const [search, setSearch] = useState('');
   const [chapterFilter, setChapterFilter] = useState('all');
@@ -44,7 +100,7 @@ export const VolunteerPage = () => {
       }, 12000);
 
       try {
-        const [opportunitiesRes, chaptersRes] = await retryWithTimeout(
+        const [opportunitiesRes, chaptersRes, signupsRes] = await retryWithTimeout(
           () =>
             Promise.all([
               client
@@ -52,6 +108,7 @@ export const VolunteerPage = () => {
                 .select('*')
                 .order('event_date', { ascending: true }),
               client.from('chapters').select('*').order('name', { ascending: true }),
+              client.from('volunteer_signups').select('opportunity_id, email'),
             ]),
           {
             attempts: 2,
@@ -73,6 +130,21 @@ export const VolunteerPage = () => {
           (opportunitiesRes.data as TableRow<'volunteer_opportunities'>[] | null) ?? []
         );
         setChapters((chaptersRes.data as TableRow<'chapters'>[] | null) ?? []);
+
+        if (signupsRes.error) {
+          if (isVolunteerSignupTableMissing(signupsRes.error.message)) {
+            setIsSignupSyncAvailable(false);
+            setSignups([]);
+          } else {
+            setIsSignupSyncAvailable(false);
+            if (!firstError) {
+              setError(formatSupabaseErrorMessage(signupsRes.error.message));
+            }
+          }
+        } else {
+          setIsSignupSyncAvailable(true);
+          setSignups((signupsRes.data as SignupRow[] | null) ?? []);
+        }
       } catch (loadError) {
         if (!isMounted) {
           return;
@@ -88,6 +160,8 @@ export const VolunteerPage = () => {
         }
         setOpportunities([]);
         setChapters([]);
+        setSignups([]);
+        setIsSignupSyncAvailable(false);
       } finally {
         if (hardStopTimer) {
           clearTimeout(hardStopTimer);
@@ -115,6 +189,34 @@ export const VolunteerPage = () => {
     });
     return map;
   }, [chapters]);
+
+  const signupCountByOpportunity = useMemo(() => {
+    const counts = new Map<string, number>();
+    signups.forEach((signup) => {
+      const nextCount = (counts.get(signup.opportunity_id) ?? 0) + 1;
+      counts.set(signup.opportunity_id, nextCount);
+    });
+    return counts;
+  }, [signups]);
+
+  const normalizedUserEmail = useMemo(() => {
+    return normalizeEmail(session?.user.email);
+  }, [session?.user.email]);
+
+  const signedUpOpportunityIds = useMemo(() => {
+    const signedUpIds = new Set<string>();
+    if (normalizedUserEmail.length === 0) {
+      return signedUpIds;
+    }
+
+    signups.forEach((signup) => {
+      if (normalizeEmail(signup.email) === normalizedUserEmail) {
+        signedUpIds.add(signup.opportunity_id);
+      }
+    });
+
+    return signedUpIds;
+  }, [normalizedUserEmail, signups]);
 
   const locationOptions = useMemo(() => {
     const unique = new Set<string>();
@@ -198,9 +300,9 @@ export const VolunteerPage = () => {
 
         <h1 className="section-title mt-3">Find Events You Can Join</h1>
         <p className="section-lead max-w-3xl">
-          Discover service opportunities by chapter, schedule, and advocacy area. To sign up, contact the chapter head listed on each event card.
+          Discover service opportunities by chapter, schedule, and advocacy area. Sign up uses
+          Google Form and status cards are synced from Supabase.
         </p>
-
       </header>
 
       <section className="panel-surface space-y-4 p-4 sm:p-5">
@@ -300,6 +402,13 @@ export const VolunteerPage = () => {
             Clear filters
           </button>
         </div>
+
+        {!isSignupSyncAvailable ? (
+          <p className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-700">
+            Signup sync table is not available yet. Run `supabase/add-volunteer-signups.sql` in
+            Supabase SQL Editor, then refresh.
+          </p>
+        ) : null}
       </section>
 
       {error ? <ErrorState message={error} /> : null}
@@ -335,16 +444,25 @@ export const VolunteerPage = () => {
 
               const dynamicFilled = (opportunity as unknown as { volunteer_filled?: unknown })
                 .volunteer_filled;
-              const volunteersFilled =
+              const fallbackFilled =
                 typeof dynamicFilled === 'number' && Number.isFinite(dynamicFilled) && dynamicFilled > 0
                   ? Math.floor(dynamicFilled)
                   : 0;
+              const syncedFilled = signupCountByOpportunity.get(opportunity.id) ?? 0;
+              const volunteersFilled = isSignupSyncAvailable ? syncedFilled : fallbackFilled;
+              const isSignedUp = signedUpOpportunityIds.has(opportunity.id);
+
               const volunteerLimit = opportunity.volunteer_limit;
               const hasLimit = volunteerLimit != null && volunteerLimit > 0;
               const progressPercent = hasLimit
                 ? Math.min(100, Math.round((volunteersFilled / volunteerLimit) * 100))
                 : 0;
               const volunteersNeeded = hasLimit ? Math.max(volunteerLimit - volunteersFilled, 0) : 0;
+              const signupUrl = buildVolunteerSignupUrl(
+                opportunity.id,
+                opportunity.event_name,
+                session?.user.email
+              );
 
               return (
                 <article
@@ -374,7 +492,13 @@ export const VolunteerPage = () => {
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="mt-0.5 h-4 w-4 shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
                           <rect x="3" y="4" width="18" height="18" rx="2" />
                           <path d="M16 2v4M8 2v4M3 10h18" />
                         </svg>
@@ -382,7 +506,13 @@ export const VolunteerPage = () => {
                       </div>
 
                       <div className="flex items-start gap-2">
-                        <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg
+                          viewBox="0 0 24 24"
+                          className="mt-0.5 h-4 w-4 shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
                           <circle cx="12" cy="12" r="9" />
                           <path d="M12 7v6l4 2" />
                         </svg>
@@ -415,14 +545,22 @@ export const VolunteerPage = () => {
                         </p>
                       </div>
                     ) : (
-                      <p className="text-sm font-medium text-slate-500">
-                        No volunteer limit set
-                      </p>
+                      <p className="text-sm font-medium text-slate-500">No volunteer limit set</p>
                     )}
+
+                    <p className="text-xs font-semibold text-slate-600">
+                      {volunteersFilled} volunteer{volunteersFilled === 1 ? '' : 's'} signed up
+                    </p>
+
+                    {isSignedUp ? (
+                      <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        You already signed up
+                      </p>
+                    ) : null}
 
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       <a
-                        href={memberFormUrl}
+                        href={signupUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn-primary px-4 py-2 text-xs"
